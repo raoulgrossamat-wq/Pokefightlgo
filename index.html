@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Pokémon Complet</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --primary: #ffcb05;
+            --secondary: #3b4cca;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--secondary);
+            text-shadow: 2px 2px var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .arena {
+            display: flex;
+            gap: 40px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .poke-card {
+            background: var(--card-bg);
+            border: 3px solid var(--secondary);
+            border-radius: 15px;
+            padding: 20px;
+            width: 280px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .sprite-container {
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            background: #f9f9f9;
+            border: 1px dashed #ccc;
+            border-radius: 10px;
+        }
+
+        .sprite {
+            max-width: 120px;
+            max-height: 120px;
+            object-fit: contain;
+        }
+
+        .poke-card.damaged {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .stats-display {
+            margin-top: 15px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .hp-bar-container {
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            height: 20px;
+            width: 100%;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .hp-bar {
+            height: 100%;
+            width: 100%;
+            background-color: #4caf50;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: var(--secondary);
+            border: 3px solid var(--secondary);
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--secondary);
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            border-color: #999;
+            color: #666;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .battle-log {
+            width: 100%;
+            max-width: 800px;
+            background: #222;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            height: 220px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        
+        .winner-announce {
+            color: #ffcb05;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Arène de Combat Pokémon</h1>
+
+    <!-- Musique rétro en boucle pour l'ambiance -->
+    <audio id="battle-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+
+    <div class="arena">
+        <!-- Mon Pokémon (P1) -->
+        <div class="poke-card" id="card-p1">
+            <div class="input-group">
+                <label for="name-p1">Mon Pokémon (Nom Anglais) :</label>
+                <input type="text" id="name-p1" value="pikachu" onchange="loadSprite('p1')">
+            </div>
+            <div class="input-group">
+                <label for="level-p1">Niveau (1-100) :</label>
+                <input type="number" id="level-p1" value="50" min="1" max="100" oninput="initStatsP1()">
+            </div>
+            <div class="sprite-container">
+                <img id="sprite-p1" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png" alt="sprite">
+            </div>
+            <div class="stats-display">
+                <strong>PV :</strong> <span id="hp-val-p1">250</span> / <span id="max-hp-p1">250</span><br>
+                <strong>Attaque :</strong> <span id="atk-val-p1">100</span>
+                <div class="hp-bar-container">
+                    <div class="hp-bar" id="bar-p1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pokémon Ennemi (P2) -->
+        <div class="poke-card" id="card-p2">
+            <div class="input-group">
+                <label for="name-p2">Pokémon Ennemi (Nom Anglais) :</label>
+                <input type="text" id="name-p2" value="eevee" onchange="loadSprite('p2')">
+            </div>
+            <div class="input-group">
+                <label for="level-p2">Niveau (1-100) :</label>
+                <input type="number" id="level-p2" value="50" min="1" max="100" oninput="initStatsP2()">
+            </div>
+            <div class="sprite-container">
+                <img id="sprite-p2" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png" alt="sprite">
+            </div>
+            <div class="stats-display">
+                <strong>PV :</strong> <span id="hp-val-p2">250</span> / <span id="max-hp-p2">250</span><br>
+                <strong>Attaque :</strong> <span id="atk-val-p2">100</span>
+                <div class="hp-bar-container">
+                    <div class="hp-bar" id="bar-p2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-battle" onclick="startBattle()">💥 COMBATTRE !</button>
+        <button id="btn-heal" onclick="healP1()">🧪 SOIGNER (Max)</button>
+    </div>
+
+    <div class="battle-log" id="log">
+        <div class="log-entry">Prêt pour le combat. Écris les noms en anglais (ex: giratina, charizard, Mewtwo...) !</div>
+    </div>
+
+    <script>
+        // Formules logiques simples basées sur le niveau
+        function calculateHP(level) { return level * 5; }
+        function calculateAtk(level) { return level * 2; }
+
+        // Mémorisation de l'état des PV du joueur (P1) d'un combat à l'autre
+        let currentHpP1 = null;
+        let maxHp1 = 250;
+
+        // Fonction fiable pour charger les artworks officiels
+        async function loadSprite(player) {
+            let nameInput = document.getElementById(`name-${player}`).value.toLowerCase().trim();
+            let imgElement = document.getElementById(`sprite-${player}`);
+            
+            try {
+                let response = await fetch(`https://pokeapi.co/api/v2/pokemon/${nameInput}`);
+                if(response.ok) {
+                    let data = await response.json();
+                    // On pioche l'artwork officiel, toujours disponible et propre
+                    imgElement.src = data.sprites.other['official-artwork'].front_default || data.sprites.front_default;
+                } else {
+                    console.log("Pokémon introuvable dans la base de données.");
+                }
+            } catch (e) {
+                console.log("Erreur réseau lors de la récupération du sprite.");
+            }
+            
+            if(player === 'p1') initStatsP1(true); // Reset la vie si le joueur change de Pokémon
+            else initStatsP2();
+        }
+
+        function initStatsP1(resetLife = false) {
+            let lvl1 = parseInt(document.getElementById('level-p1').value) || 1;
+            maxHp1 = calculateHP(lvl1);
+            
+            if (currentHpP1 === null || resetLife) {
+                currentHpP1 = maxHp1;
+            }
+
+            document.getElementById('max-hp-p1').innerText = maxHp1;
+            document.getElementById('hp-val-p1').innerText = currentHpP1;
+            document.getElementById('atk-val-p1').innerText = calculateAtk(lvl1);
+            updateHealthBar('bar-p1', currentHpP1, maxHp1);
+        }
+
+        function initStatsP2() {
+            let lvl2 = parseInt(document.getElementById('level-p2').value) || 1;
+            let maxHp2 = calculateHP(lvl2);
+            document.getElementById('max-hp-p2').innerText = maxHp2;
+            document.getElementById('hp-val-p2').innerText = maxHp2;
+            document.getElementById('atk-val-p2').innerText = calculateAtk(lvl2);
+            updateHealthBar('bar-p2', maxHp2, maxHp2);
+        }
+
+        function healP1() {
+            let lvl1 = parseInt(document.getElementById('level-p1').value) || 1;
+            maxHp1 = calculateHP(lvl1);
+            currentHpP1 = maxHp1;
+            document.getElementById('hp-val-p1').innerText = currentHpP1;
+            updateHealthBar('bar-p1', currentHpP1, maxHp1);
+            logMessage("🧪 Votre Pokémon a été complètement soigné ! Ses PV sont au maximum.");
+        }
+
+        function logMessage(text, isWinner = false) {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = isWinner ? 'log-entry winner-announce' : 'log-entry';
+            entry.innerHTML = text;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateHealthBar(barId, current, max) {
+            const bar = document.getElementById(barId);
+            const percentage = Math.max(0, (current / max) * 100);
+            bar.style.width = percentage + '%';
+            if (percentage > 50) bar.style.backgroundColor = '#4caf50';
+            else if (percentage > 20) bar.style.backgroundColor = '#ff9800';
+            else bar.style.backgroundColor = '#f44336';
+        }
+
+        async function startBattle() {
+            let name1 = document.getElementById('name-p1').value.toUpperCase() || 'P1';
+            let lvl1 = parseInt(document.getElementById('level-p1').value) || 1;
+            let atk1 = calculateAtk(lvl1);
+
+            let name2 = document.getElementById('name-p2').value.toUpperCase() || 'P2';
+            let lvl2 = parseInt(document.getElementById('level-p2').value) || 1;
+            let maxHp2 = calculateHP(lvl2);
+            let hp2 = maxHp2;
+            let atk2 = calculateAtk(lvl2);
+
+            if (currentHpP1 <= 0) {
+                logMessage("❌ Votre Pokémon est K.O. ! Cliquez sur 'SOIGNER' avant de relancer un combat.");
+                return;
+            }
+
+            document.getElementById('btn-battle').disabled = true;
+            document.getElementById('log').innerHTML = '';
+            
+            // Lancer la musique de fond
+            document.getElementById('battle-music').play();
+
+            logMessage(`🔴 **Le combat commence ! ${name1} (Niv. ${lvl1}) fait face à ${name2} (Niv. ${lvl2}) !**`);
+
+            // --- DEFAITE AUTOMATIQUE REFAITE CONTRE GIRATINA ---
+            if (name2.trim().includes("GIRATINA")) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                logMessage(`🌌 **L'espace-temps se déchire... GIRATINA surgit du Monde Distorsion !**`);
+                
+                currentHpP1 = 0;
+                document.getElementById('hp-val-p1').innerText = 0;
+                updateHealthBar('bar-p1', 0, maxHp1);
+                document.getElementById('card-p1').classList.add('damaged');
+                
+                logMessage(`😵 **${name1}** ne peut rien faire et tombe instantanément K.O. face au Dieu de l'Antimatière.`);
+                logMessage(`🏆 **GIRATINA l'emporte par K.O. absolu !**`, true);
+                
+                document.getElementById('battle-music').pause();
+                document.getElementById('btn-battle').disabled = false;
+                return;
+            }
+
+            let tour = 1;
+
+            while(currentHpP1 > 0 && hp2 > 0) {
+                await new Promise(resolve => setTimeout(resolve, 600));
+                logMessage(`--- **Tour ${tour}** ---`);
+
+                // P1 attaque P2
+                hp2 -= atk1;
+                document.getElementById('hp-val-p2').innerText = Math.max(0, hp2);
+                updateHealthBar('bar-p2', hp2, maxHp2);
+                document.getElementById('card-p2').classList.add('damaged');
+                setTimeout(() => document.getElementById('card-p2').classList.remove('damaged'), 200);
+                logMessage(`💥 **${name1}** attaque et inflige **${atk1} dégâts** à ${name2}.`);
+
+                if (hp2 <= 0) {
+                    logMessage(`😵 **${name2}** est K.O. !`);
+                    logMessage(`🏆 **${name1} remporte la victoire !** (Ses PV restants sont sauvegardés)`, true);
+                    break;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 600));
+
+                // P2 riposte
+                currentHpP1 -= atk2;
+                document.getElementById('hp-val-p1').innerText = Math.max(0, currentHpP1);
+                updateHealthBar('bar-p1', currentHpP1, maxHp1);
+                document.getElementById('card-p1').classList.add('damaged');
+                setTimeout(() => document.getElementById('card-p1').classList.remove('damaged'), 200);
+                logMessage(`💥 **${name2}** riposte et inflige **${atk2} dégâts** à ${name1}.`);
+
+                if (currentHpP1 <= 0) {
+                    logMessage(`😵 **${name1}** est K.O. !`);
+                    logMessage(`🏆 **${name2} a gagné le combat !** Soigne ton Pokémon pour la suite.`, true);
+                    break;
+                }
+
+                tour++;
+            }
+
+            // Arrêter et réinitialiser la musique
+            document.getElementById('battle-music').pause();
+            document.getElementById('battle-music').currentTime = 0;
+            document.getElementById('btn-battle').disabled = false;
+        }
+
+        // Chargement initial des statistiques
+        initStatsP1();
+        initStatsP2();
+    </script>
+</body>
+</html>
