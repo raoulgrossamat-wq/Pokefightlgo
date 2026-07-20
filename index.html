@@ -188,7 +188,6 @@
 
     <h1>Arène de Combat Pokémon</h1>
 
-    <!-- Musique rétro en boucle pour l'ambiance -->
     <audio id="battle-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
 
     <div class="arena">
@@ -243,48 +242,48 @@
     </div>
 
     <div class="battle-log" id="log">
-        <div class="log-entry">Prêt pour le combat. Écris les noms en anglais (ex: giratina, charizard, Mewtwo...) !</div>
+        <div class="log-entry">Prêt pour le combat. Écris les noms en anglais (ex: giratina, charizard, mewtwo...) !</div>
     </div>
 
     <script>
-        // Formules logiques simples basées sur le niveau
         function calculateHP(level) { return level * 5; }
         function calculateAtk(level) { return level * 2; }
 
-        // Mémorisation de l'état des PV du joueur (P1) d'un combat à l'autre
         let currentHpP1 = null;
         let maxHp1 = 250;
 
-        // Fonction fiable pour charger les artworks officiels
+        // Fonction corrigée pour intercepter le mot-clé giratina
         async function loadSprite(player) {
             let nameInput = document.getElementById(`name-${player}`).value.toLowerCase().trim();
             let imgElement = document.getElementById(`sprite-${player}`);
+            
+            // Correction automatique si l'utilisateur tape juste "giratina"
+            if (nameInput === 'giratina') {
+                nameInput = 'giratina-altered';
+            }
             
             try {
                 let response = await fetch(`https://pokeapi.co/api/v2/pokemon/${nameInput}`);
                 if(response.ok) {
                     let data = await response.json();
-                    // On pioche l'artwork officiel, toujours disponible et propre
                     imgElement.src = data.sprites.other['official-artwork'].front_default || data.sprites.front_default;
                 } else {
-                    console.log("Pokémon introuvable dans la base de données.");
+                    console.log("Pokémon introuvable");
                 }
             } catch (e) {
-                console.log("Erreur réseau lors de la récupération du sprite.");
+                console.log("Erreur de chargement du sprite");
             }
             
-            if(player === 'p1') initStatsP1(true); // Reset la vie si le joueur change de Pokémon
+            if(player === 'p1') initStatsP1(true);
             else initStatsP2();
         }
 
         function initStatsP1(resetLife = false) {
             let lvl1 = parseInt(document.getElementById('level-p1').value) || 1;
             maxHp1 = calculateHP(lvl1);
-            
             if (currentHpP1 === null || resetLife) {
                 currentHpP1 = maxHp1;
             }
-
             document.getElementById('max-hp-p1').innerText = maxHp1;
             document.getElementById('hp-val-p1').innerText = currentHpP1;
             document.getElementById('atk-val-p1').innerText = calculateAtk(lvl1);
@@ -306,7 +305,7 @@
             currentHpP1 = maxHp1;
             document.getElementById('hp-val-p1').innerText = currentHpP1;
             updateHealthBar('bar-p1', currentHpP1, maxHp1);
-            logMessage("🧪 Votre Pokémon a été complètement soigné ! Ses PV sont au maximum.");
+            logMessage("🧪 Votre Pokémon a été complètement soigné !");
         }
 
         function logMessage(text, isWinner = false) {
@@ -339,19 +338,16 @@
             let atk2 = calculateAtk(lvl2);
 
             if (currentHpP1 <= 0) {
-                logMessage("❌ Votre Pokémon est K.O. ! Cliquez sur 'SOIGNER' avant de relancer un combat.");
+                logMessage("❌ Votre Pokémon est K.O. ! Soignez-le avant de combattre !");
                 return;
             }
 
             document.getElementById('btn-battle').disabled = true;
             document.getElementById('log').innerHTML = '';
-            
-            // Lancer la musique de fond
             document.getElementById('battle-music').play();
 
-            logMessage(`🔴 **Le combat commence ! ${name1} (Niv. ${lvl1}) fait face à ${name2} (Niv. ${lvl2}) !**`);
+            logMessage(`🔴 **Le combat commence ! ${name1} fait face à ${name2} !**`);
 
-            // --- DEFAITE AUTOMATIQUE REFAITE CONTRE GIRATINA ---
             if (name2.trim().includes("GIRATINA")) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 logMessage(`🌌 **L'espace-temps se déchire... GIRATINA surgit du Monde Distorsion !**`);
@@ -361,7 +357,7 @@
                 updateHealthBar('bar-p1', 0, maxHp1);
                 document.getElementById('card-p1').classList.add('damaged');
                 
-                logMessage(`😵 **${name1}** ne peut rien faire et tombe instantanément K.O. face au Dieu de l'Antimatière.`);
+                logMessage(`😵 **${name1}** tombe instantanément K.O. face au Dieu de l'Antimatière.`);
                 logMessage(`🏆 **GIRATINA l'emporte par K.O. absolu !**`, true);
                 
                 document.getElementById('battle-music').pause();
@@ -375,23 +371,21 @@
                 await new Promise(resolve => setTimeout(resolve, 600));
                 logMessage(`--- **Tour ${tour}** ---`);
 
-                // P1 attaque P2
                 hp2 -= atk1;
                 document.getElementById('hp-val-p2').innerText = Math.max(0, hp2);
                 updateHealthBar('bar-p2', hp2, maxHp2);
                 document.getElementById('card-p2').classList.add('damaged');
                 setTimeout(() => document.getElementById('card-p2').classList.remove('damaged'), 200);
-                logMessage(`💥 **${name1}** attaque et inflige **${atk1} dégâts** à ${name2}.`);
+                logMessage(`💥 **${name1}** inflige **${atk1} dégâts** à ${name2}.`);
 
                 if (hp2 <= 0) {
                     logMessage(`😵 **${name2}** est K.O. !`);
-                    logMessage(`🏆 **${name1} remporte la victoire !** (Ses PV restants sont sauvegardés)`, true);
+                    logMessage(`🏆 **${name1} remporte la victoire !**`, true);
                     break;
                 }
 
                 await new Promise(resolve => setTimeout(resolve, 600));
 
-                // P2 riposte
                 currentHpP1 -= atk2;
                 document.getElementById('hp-val-p1').innerText = Math.max(0, currentHpP1);
                 updateHealthBar('bar-p1', currentHpP1, maxHp1);
@@ -401,20 +395,18 @@
 
                 if (currentHpP1 <= 0) {
                     logMessage(`😵 **${name1}** est K.O. !`);
-                    logMessage(`🏆 **${name2} a gagné le combat !** Soigne ton Pokémon pour la suite.`, true);
+                    logMessage(`🏆 **${name2} a gagné le combat !**`, true);
                     break;
                 }
 
                 tour++;
             }
 
-            // Arrêter et réinitialiser la musique
             document.getElementById('battle-music').pause();
             document.getElementById('battle-music').currentTime = 0;
             document.getElementById('btn-battle').disabled = false;
         }
 
-        // Chargement initial des statistiques
         initStatsP1();
         initStatsP2();
     </script>
