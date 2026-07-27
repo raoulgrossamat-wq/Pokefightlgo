@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulateur Pokémon Ultime</title>
+    <title>Simulateur Pokémon</title>
     <style>
         :root {
             --bg-color: #f4f4f9;
@@ -185,20 +185,24 @@
             color: #ffcb05;
             font-weight: bold;
         }
+
+        .evil-text {
+            color: #ff4d4d;
+            font-weight: bold;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
     <h1>Arène de Combat Pokémon</h1>
 
-    <audio id="battle-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
-
     <div class="arena">
         <!-- Mon Pokémon (P1) -->
         <div class="poke-card" id="card-p1">
             <div class="input-group">
-                <label for="name-p1">Mon Pokémon :</label>
-                <input type="text" id="name-p1" value="Pikachu" oninput="loadSprite('p1')" placeholder="Ex: Bulbizarre">
+                <label for="name-p1">Mon Pokémon (Nom ou N°) :</label>
+                <input type="text" id="name-p1" value="Pikachu" oninput="loadSprite('p1')">
             </div>
             <div class="input-group">
                 <label for="level-p1">Niveau (1-100) :</label>
@@ -219,8 +223,8 @@
         <!-- Pokémon Ennemi (P2) -->
         <div class="poke-card" id="card-p2">
             <div class="input-group">
-                <label for="name-p2">Pokémon Ennemi :</label>
-                <input type="text" id="name-p2" value="Giratina" oninput="loadSprite('p2')" placeholder="Ex: Rayquaza">
+                <label for="name-p2">Pokémon Ennemi (Nom ou N°) :</label>
+                <input type="text" id="name-p2" value="Giratina" oninput="loadSprite('p2')">
             </div>
             <div class="input-group">
                 <label for="level-p2">Niveau (1-100) :</label>
@@ -245,7 +249,7 @@
     </div>
 
     <div class="battle-log" id="log">
-        <div class="log-entry">🟢 Chargement du Pokédex national en cours...</div>
+        <div class="log-entry">Écris le nom d'un Pokémon (ou son numéro Pokédex) pour lancer le combat !</div>
     </div>
 
     <script>
@@ -254,41 +258,50 @@
 
         let currentHpP1 = null;
         let maxHp1 = 250;
-        let pokedexDatabase = {};
 
-        async function loadPokedex() {
-            try {
-                let response = await fetch('https://tyradex.tech/api/v1/pokemon');
-                let data = await response.json();
-                
-                data.forEach(pokemon => {
-                    if(pokemon.name) {
-                        if(pokemon.name.fr) pokedexDatabase[pokemon.name.fr.toLowerCase()] = pokemon.pokedex_id;
-                        if(pokemon.name.en) pokedexDatabase[pokemon.name.en.toLowerCase()] = pokemon.pokedex_id;
-                    }
-                });
-                
-                logMessage("✅ Pokédex complet chargé ! Tu peux taper n'importe quel Pokémon (1 à 1025).");
-                loadSprite('p1');
-                loadSprite('p2');
-            } catch (e) {
-                logMessage("⚠️ Erreur réseau : impossible de charger la liste des Pokémon.");
-            }
-        }
-
-        loadPokedex();
+        // Dictionnaire direct sans appel réseau risqué
+        const pokemonMap = {
+            'bulbizarre': 1, 'bulbasaur': 1,
+            'salameche': 4, 'charmander': 4,
+            'dracaufeu': 6, 'charizard': 6,
+            'carapuce': 7, 'squirtle': 7,
+            'pikachu': 25,
+            'ectoplasma': 94, 'gengar': 94,
+            'evoli': 133, 'eevee': 133,
+            'mewtwo': 150,
+            'mew': 151,
+            'noctali': 197, 'umbreon': 197,
+            'mentali': 196, 'espeon': 196,
+            'rayquaza': 384,
+            'lucario': 448,
+            'giratina': 487,
+            'arceus': 493,
+            'ronflex': 143, 'snorlax': 143,
+            'grenousse': 656, 'froakie': 656,
+            'amphinobi': 658, 'greninja': 658
+        };
 
         function loadSprite(player) {
-            let nameInput = document.getElementById(`name-${player}`).value.toLowerCase().trim();
+            let input = document.getElementById(`name-${player}`).value.toLowerCase().trim();
             let imgElement = document.getElementById(`sprite-${player}`);
             
-            if (!nameInput) return;
+            if (!input) return;
 
-            let id = pokedexDatabase[nameInput];
-            
-            if (id) {
-                imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            let pokemonId = null;
+
+            // Si l'utilisateur entre directement un numéro (ex: 25, 487, 1000)
+            if (!isNaN(input) && parseInt(input) > 0) {
+                pokemonId = parseInt(input);
+            } 
+            // Sinon si le nom est dans notre dictionnaire
+            else if (pokemonMap[input]) {
+                pokemonId = pokemonMap[input];
+            }
+
+            if (pokemonId) {
+                imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
             } else {
+                // Image par défaut si le nom n'est pas reconnu
                 imgElement.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
             }
             
@@ -326,10 +339,13 @@
             logMessage("🧪 Votre Pokémon a été complètement soigné !");
         }
 
-        function logMessage(text, isWinner = false) {
+        function logMessage(text, isWinner = false, isEvil = false) {
             const log = document.getElementById('log');
             const entry = document.createElement('div');
-            entry.className = isWinner ? 'log-entry winner-announce' : 'log-entry';
+            if (isWinner) entry.className = 'log-entry winner-announce';
+            else if (isEvil) entry.className = 'log-entry evil-text';
+            else entry.className = 'log-entry';
+            
             entry.innerHTML = text;
             log.appendChild(entry);
             log.scrollTop = log.scrollHeight;
@@ -362,13 +378,12 @@
 
             document.getElementById('btn-battle').disabled = true;
             document.getElementById('log').innerHTML = '';
-            document.getElementById('battle-music').play();
 
             logMessage(`🔴 **Le combat commence ! ${name1} fait face à ${name2} !**`);
 
-            // LE BOSS CACHÉ : GIRATINA + RIRE MACHIAVÉLIQUE
-            if (name2.trim().includes("GIRATINA")) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+            // EVENT GIRATINA
+            if (name2.trim().includes("GIRATINA") || name2.trim() === "487") {
+                await new Promise(resolve => setTimeout(resolve, 800));
                 logMessage(`🌌 **L'espace-temps se déchire... GIRATINA surgit du Monde Distorsion !**`);
                 
                 currentHpP1 = 0;
@@ -376,15 +391,10 @@
                 updateHealthBar('bar-p1', 0, maxHp1);
                 document.getElementById('card-p1').classList.add('damaged');
                 
-                // Effet sonore de rire
-                let evilLaugh = new Audio('https://assets.mixkit.co/active_storage/sfx/2205/2205-preview.mp3');
-                evilLaugh.play();
-
                 logMessage(`😵 **${name1}** tombe instantanément K.O. face au Dieu de l'Antimatière.`);
                 logMessage(`🏆 **GIRATINA l'emporte par K.O. absolu !**`, true);
-                logMessage(`😈 *« MOUAHAHAHAHA ! Tu croyais vraiment pouvoir me vaincre ? »*`);
+                logMessage(`😈 *« MWAHAHAHAHAHAHA ! Pauvre mortel, tu croyais vraiment pouvoir me défier ? »*`, false, true);
                 
-                document.getElementById('battle-music').pause();
                 document.getElementById('btn-battle').disabled = false;
                 return;
             }
@@ -426,13 +436,13 @@
                 tour++;
             }
 
-            document.getElementById('battle-music').pause();
-            document.getElementById('battle-music').currentTime = 0;
             document.getElementById('btn-battle').disabled = false;
         }
 
         initStatsP1();
         initStatsP2();
+        loadSprite('p1');
+        loadSprite('p2');
     </script>
 </body>
 </html>
