@@ -197,6 +197,9 @@
 
     <h1>Arène de Combat Pokémon</h1>
 
+    <!-- Musique de combat en arrière-plan -->
+    <audio id="battle-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+
     <div class="arena">
         <!-- Mon Pokémon (P1) -->
         <div class="poke-card" id="card-p1">
@@ -259,7 +262,6 @@
         let currentHpP1 = null;
         let maxHp1 = 250;
 
-        // Dictionnaire direct sans appel réseau risqué
         const pokemonMap = {
             'bulbizarre': 1, 'bulbasaur': 1,
             'salameche': 4, 'charmander': 4,
@@ -289,19 +291,15 @@
 
             let pokemonId = null;
 
-            // Si l'utilisateur entre directement un numéro (ex: 25, 487, 1000)
             if (!isNaN(input) && parseInt(input) > 0) {
                 pokemonId = parseInt(input);
-            } 
-            // Sinon si le nom est dans notre dictionnaire
-            else if (pokemonMap[input]) {
+            } else if (pokemonMap[input]) {
                 pokemonId = pokemonMap[input];
             }
 
             if (pokemonId) {
                 imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
             } else {
-                // Image par défaut si le nom n'est pas reconnu
                 imgElement.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
             }
             
@@ -379,6 +377,11 @@
             document.getElementById('btn-battle').disabled = true;
             document.getElementById('log').innerHTML = '';
 
+            // Lancer la musique au clic sur le bouton
+            let music = document.getElementById('battle-music');
+            music.currentTime = 0;
+            music.play().catch(e => console.log("Audio bloqué par le navigateur"));
+
             logMessage(`🔴 **Le combat commence ! ${name1} fait face à ${name2} !**`);
 
             // EVENT GIRATINA
@@ -391,6 +394,14 @@
                 updateHealthBar('bar-p1', 0, maxHp1);
                 document.getElementById('card-p1').classList.add('damaged');
                 
+                // Stopper la musique de fond
+                music.pause();
+
+                // Jouer un rire diabolique propre (sans cris)
+                let evilLaugh = new Audio('https://assets.mixkit.co/active_storage/sfx/2205/2205-preview.mp3');
+                evilLaugh.volume = 0.8;
+                evilLaugh.play().catch(e => console.log("Audio bloqué"));
+
                 logMessage(`😵 **${name1}** tombe instantanément K.O. face au Dieu de l'Antimatière.`);
                 logMessage(`🏆 **GIRATINA l'emporte par K.O. absolu !**`, true);
                 logMessage(`😈 *« MWAHAHAHAHAHAHA ! Pauvre mortel, tu croyais vraiment pouvoir me défier ? »*`, false, true);
@@ -436,6 +447,8 @@
                 tour++;
             }
 
+            // Couper la musique à la fin du combat
+            music.pause();
             document.getElementById('btn-battle').disabled = false;
         }
 
