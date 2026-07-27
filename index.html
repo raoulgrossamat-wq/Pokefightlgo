@@ -28,6 +28,7 @@
             color: var(--secondary);
             text-shadow: 2px 2px var(--primary);
             margin-bottom: 20px;
+            text-align: center;
         }
 
         .arena {
@@ -129,6 +130,8 @@
             text-align: center;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         button {
@@ -194,8 +197,8 @@
         <!-- Mon Pokémon (P1) -->
         <div class="poke-card" id="card-p1">
             <div class="input-group">
-                <label for="name-p1">Mon Pokémon (en français) :</label>
-                <input type="text" id="name-p1" value="Pikachu" oninput="loadSprite('p1')">
+                <label for="name-p1">Mon Pokémon :</label>
+                <input type="text" id="name-p1" value="Pikachu" oninput="loadSprite('p1')" placeholder="Ex: Bulbizarre">
             </div>
             <div class="input-group">
                 <label for="level-p1">Niveau (1-100) :</label>
@@ -216,15 +219,15 @@
         <!-- Pokémon Ennemi (P2) -->
         <div class="poke-card" id="card-p2">
             <div class="input-group">
-                <label for="name-p2">Pokémon Ennemi (en français) :</label>
-                <input type="text" id="name-p2" value="Noctali" oninput="loadSprite('p2')">
+                <label for="name-p2">Pokémon Ennemi :</label>
+                <input type="text" id="name-p2" value="Dracaufeu" oninput="loadSprite('p2')" placeholder="Ex: Rayquaza">
             </div>
             <div class="input-group">
                 <label for="level-p2">Niveau (1-100) :</label>
                 <input type="number" id="level-p2" value="50" min="1" max="100" oninput="initStatsP2()">
             </div>
             <div class="sprite-container">
-                <img id="sprite-p2" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/197.png" alt="sprite">
+                <img id="sprite-p2" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png" alt="sprite">
             </div>
             <div class="stats-display">
                 <strong>PV :</strong> <span id="hp-val-p2">250</span> / <span id="max-hp-p2">250</span><br>
@@ -242,7 +245,7 @@
     </div>
 
     <div class="battle-log" id="log">
-        <div class="log-entry">Tape n'importe quel nom en français (Bulbizarre, Noctali, Dracaufeu, Giratina...) !</div>
+        <div class="log-entry">🟢 Chargement du Pokédex national en cours...</div>
     </div>
 
     <script>
@@ -251,32 +254,51 @@
 
         let currentHpP1 = null;
         let maxHp1 = 250;
+        
+        // Base de données géante qui va se remplir toute seule au lancement
+        let pokedexDatabase = {};
 
-        // Fonction magique qui traduit le nom français via l'API officielle en temps réel
-        async function loadSprite(player) {
+        // Connexion à l'API française Tyradex pour récupérer tous les Pokémon d'un coup
+        async function loadPokedex() {
+            try {
+                let response = await fetch('https://tyradex.tech/api/v1/pokemon');
+                let data = await response.json();
+                
+                data.forEach(pokemon => {
+                    if(pokemon.name) {
+                        // On enregistre le nom français et anglais en minuscules
+                        if(pokemon.name.fr) pokedexDatabase[pokemon.name.fr.toLowerCase()] = pokemon.pokedex_id;
+                        if(pokemon.name.en) pokedexDatabase[pokemon.name.en.toLowerCase()] = pokemon.pokedex_id;
+                    }
+                });
+                
+                logMessage("✅ Pokédex complet chargé ! Tu peux taper n'importe quel Pokémon (1 à 1025).");
+                // On met à jour les images initiales au cas où
+                loadSprite('p1');
+                loadSprite('p2');
+            } catch (e) {
+                logMessage("⚠️ Erreur réseau : impossible de charger la liste des Pokémon.");
+            }
+        }
+
+        // On lance le téléchargement du Pokédex dès l'ouverture de la page
+        loadPokedex();
+
+        function loadSprite(player) {
             let nameInput = document.getElementById(`name-${player}`).value.toLowerCase().trim();
             let imgElement = document.getElementById(`sprite-${player}`);
             
             if (!nameInput) return;
 
-            try {
-                // Interroge l'espèce pour récupérer les noms dans toutes les langues dont le français
-                let response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${nameInput}`);
-                
-                if (response.ok) {
-                    let data = await response.json();
-                    let id = data.id; // Récupère directement le bon numéro national peu importe le nom
-                    imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-                } else {
-                    // Si le nom français direct échoue, essaie par l'anglais standard
-                    let fallbackResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${nameInput}`);
-                    if (fallbackResponse.ok) {
-                        let fallbackData = await fallbackResponse.json();
-                        imgElement.src = fallbackData.sprites.other['official-artwork'].front_default || fallbackData.sprites.front_default;
-                    }
-                }
-            } catch (e) {
-                console.log("Recherche en cours...");
+            // On cherche l'ID du Pokémon dans notre énorme dictionnaire
+            let id = pokedexDatabase[nameInput];
+            
+            if (id) {
+                // Si on trouve (ex: dracaufeu = 6), on affiche sa vraie image HD
+                imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            } else {
+                // Sinon on met une image mystère par défaut
+                imgElement.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
             }
             
             if(player === 'p1') initStatsP1(true);
@@ -353,8 +375,8 @@
 
             logMessage(`🔴 **Le combat commence ! ${name1} fait face à ${name2} !**`);
 
-            // Easter egg Giratina (détecte le mot peu importe les majuscules/minuscules)
-            if (name2.trim().toUpperCase().includes("GIRATINA")) {
+            // Le boss caché : GIRATINA
+            if (name2.trim().includes("GIRATINA")) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 logMessage(`🌌 **L'espace-temps se déchire... GIRATINA surgit du Monde Distorsion !**`);
                 
@@ -399,7 +421,7 @@
                 setTimeout(() => document.getElementById('card-p1').classList.remove('damaged'), 200);
                 logMessage(`💥 **${name2}** riposte et inflige **${atk2} dégâts** à ${name1}.`);
 
-                if (currentHpP1 <=0) {
+                if (currentHpP1 <= 0) {
                     logMessage(`😵 **${name1}** est K.O. !`);
                     logMessage(`🏆 **${name2} a gagné le combat !**`, true);
                     break;
