@@ -220,14 +220,14 @@
         <div class="poke-card" id="card-p2">
             <div class="input-group">
                 <label for="name-p2">Pokémon Ennemi :</label>
-                <input type="text" id="name-p2" value="Dracaufeu" oninput="loadSprite('p2')" placeholder="Ex: Rayquaza">
+                <input type="text" id="name-p2" value="Giratina" oninput="loadSprite('p2')" placeholder="Ex: Rayquaza">
             </div>
             <div class="input-group">
                 <label for="level-p2">Niveau (1-100) :</label>
                 <input type="number" id="level-p2" value="50" min="1" max="100" oninput="initStatsP2()">
             </div>
             <div class="sprite-container">
-                <img id="sprite-p2" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png" alt="sprite">
+                <img id="sprite-p2" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/487.png" alt="sprite">
             </div>
             <div class="stats-display">
                 <strong>PV :</strong> <span id="hp-val-p2">250</span> / <span id="max-hp-p2">250</span><br>
@@ -254,11 +254,8 @@
 
         let currentHpP1 = null;
         let maxHp1 = 250;
-        
-        // Base de données géante qui va se remplir toute seule au lancement
         let pokedexDatabase = {};
 
-        // Connexion à l'API française Tyradex pour récupérer tous les Pokémon d'un coup
         async function loadPokedex() {
             try {
                 let response = await fetch('https://tyradex.tech/api/v1/pokemon');
@@ -266,14 +263,12 @@
                 
                 data.forEach(pokemon => {
                     if(pokemon.name) {
-                        // On enregistre le nom français et anglais en minuscules
                         if(pokemon.name.fr) pokedexDatabase[pokemon.name.fr.toLowerCase()] = pokemon.pokedex_id;
                         if(pokemon.name.en) pokedexDatabase[pokemon.name.en.toLowerCase()] = pokemon.pokedex_id;
                     }
                 });
                 
                 logMessage("✅ Pokédex complet chargé ! Tu peux taper n'importe quel Pokémon (1 à 1025).");
-                // On met à jour les images initiales au cas où
                 loadSprite('p1');
                 loadSprite('p2');
             } catch (e) {
@@ -281,7 +276,6 @@
             }
         }
 
-        // On lance le téléchargement du Pokédex dès l'ouverture de la page
         loadPokedex();
 
         function loadSprite(player) {
@@ -290,14 +284,11 @@
             
             if (!nameInput) return;
 
-            // On cherche l'ID du Pokémon dans notre énorme dictionnaire
             let id = pokedexDatabase[nameInput];
             
             if (id) {
-                // Si on trouve (ex: dracaufeu = 6), on affiche sa vraie image HD
                 imgElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
             } else {
-                // Sinon on met une image mystère par défaut
                 imgElement.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
             }
             
@@ -375,7 +366,7 @@
 
             logMessage(`🔴 **Le combat commence ! ${name1} fait face à ${name2} !**`);
 
-            // Le boss caché : GIRATINA
+            // LE BOSS CACHÉ : GIRATINA + RIRE MACHIAVÉLIQUE
             if (name2.trim().includes("GIRATINA")) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 logMessage(`🌌 **L'espace-temps se déchire... GIRATINA surgit du Monde Distorsion !**`);
@@ -385,8 +376,13 @@
                 updateHealthBar('bar-p1', 0, maxHp1);
                 document.getElementById('card-p1').classList.add('damaged');
                 
+                // Effet sonore de rire
+                let evilLaugh = new Audio('https://assets.mixkit.co/active_storage/sfx/2205/2205-preview.mp3');
+                evilLaugh.play();
+
                 logMessage(`😵 **${name1}** tombe instantanément K.O. face au Dieu de l'Antimatière.`);
                 logMessage(`🏆 **GIRATINA l'emporte par K.O. absolu !**`, true);
+                logMessage(`😈 *« MOUAHAHAHAHA ! Tu croyais vraiment pouvoir me vaincre ? »*`);
                 
                 document.getElementById('battle-music').pause();
                 document.getElementById('btn-battle').disabled = false;
